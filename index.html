@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="XcLance Draw">
+<meta name="theme-color" content="#111318">
+
+<title>XcLance Shop Drawing Generator</title>
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #111318;
+    color: white;
+}
+
+header {
+    padding: 18px;
+    background: #191d24;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 21px;
+}
+
+header small {
+    color: #aaa;
+}
+
+main {
+    display: grid;
+    grid-template-columns: 330px 1fr;
+    gap: 15px;
+    padding: 15px;
+}
+
+.controls {
+    background: #1b2028;
+    padding: 16px;
+    border-radius: 10px;
+}
+
+label {
+    display: block;
+    margin-top: 12px;
+    color: #bbc3cf;
+    font-size: 13px;
+}
+
+input {
+    width: 100%;
+    padding: 10px;
+    margin-top: 4px;
+    background: #0d1015;
+    color: white;
+    border: 1px solid #46505e;
+    border-radius: 7px;
+    font-size: 16px;
+}
+
+button {
+    width: 100%;
+    padding: 14px;
+    margin-top: 18px;
+    border: 0;
+    border-radius: 8px;
+    background: #d09a4a;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.paper {
+    background: white;
+    color: #111;
+    padding: 20px;
+    min-height: 600px;
+}
+
+.paper h2 {
+    margin-bottom: 4px;
+}
+
+svg {
+    width: 100%;
+    height: 430px;
+    border: 1px solid #aaa;
+    margin-top: 15px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+th, td {
+    border: 1px solid #999;
+    padding: 7px;
+    font-size: 12px;
+}
+
+th {
+    background: #eee;
+}
+
+@media (max-width: 800px) {
+    main {
+        grid-template-columns: 1fr;
+    }
+
+    .paper {
+        overflow-x: auto;
+    }
+
+    svg {
+        min-width: 650px;
+    }
+}
+
+@media print {
+    header, .controls {
+        display: none;
+    }
+
+    body {
+        background: white;
+    }
+
+    main {
+        display: block;
+        padding: 0;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>XcLance Shop Drawing Generator</h1>
+    <small>Fabrication Drawing App</small>
+</header>
+
+<main>
+
+<section class="controls">
+
+<label>Project Name</label>
+<input id="project" value="Custom Railing">
+
+<label>Overall Width — inches</label>
+<input id="width" type="number" value="96">
+
+<label>Overall Height — inches</label>
+<input id="height" type="number" value="36">
+
+<label>Post Size — inches</label>
+<input id="post" type="number" step=".125" value="1.5">
+
+<label>Rail Size — inches</label>
+<input id="rail" type="number" step=".125" value="1.5">
+
+<label>Picket Size — inches</label>
+<input id="picket" type="number" step=".125" value=".5">
+
+<label>Picket Spacing O.C. — inches</label>
+<input id="spacing" type="number" step=".125" value="4">
+
+<label>Number of Posts</label>
+<input id="posts" type="number" min="2" value="3">
+
+<button onclick="generateDrawing()">
+GENERATE DRAWING
+</button>
+
+<button onclick="window.print()" style="background:#ddd;">
+PRINT / SAVE PDF
+</button>
+
+</section>
+
+
+<section class="paper">
+
+<h2 id="drawingTitle">Custom Railing</h2>
+
+<strong>XC LANCE FABRICATION — SHOP DRAWING</strong>
+
+<svg id="drawing"
+     viewBox="0 0 900 430"
+     xmlns="http://www.w3.org/2000/svg">
+</svg>
+
+<table>
+
+<thead>
+<tr>
+<th>Item</th>
+<th>Qty</th>
+<th>Length</th>
+</tr>
+</thead>
+
+<tbody id="cutList"></tbody>
+
+</table>
+
+</section>
+
+</main>
+
+
+<script>
+
+function get(id) {
+    return document.getElementById(id);
+}
+
+function svgElement(type, attributes) {
+
+    var element =
+        document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        type);
+
+    for (var key in attributes) {
+        element.setAttribute(
+            key,
+            attributes[key]
+        );
+    }
+
+    return element;
+}
+
+
+function rectangle(svg,x,y,w,h,fill) {
+
+    svg.appendChild(
+        svgElement(
+            "rect",
+            {
+                x:x,
+                y:y,
+                width:w,
+                height:h,
+                fill:fill,
+                stroke:"#111",
+                "stroke-width":1.5
+            }
+        )
+    );
+}
+
+
+function line(svg,x1,y1,x2,y2) {
+
+    svg.appendChild(
+        svgElement(
+            "line",
+            {
+                x1:x1,
+                y1:y1,
+                x2:x2,
+                y2:y2,
+                stroke:"#111",
+                "stroke-width":1
+            }
+        )
+    );
+}
+
+
+function text(svg,x,y,value) {
+
+    var element =
+        svgElement(
+            "text",
+            {
+                x:x,
+                y:y,
+                "text-anchor":"middle",
+                "font-family":"Arial",
+                "font-size":14,
+                fill:"#111"
+            }
+        );
+
+    element.textContent = value;
+
+    svg.appendChild(element);
+}
+
+
+function generateDrawing() {
+
+    var width =
+        Number(get("width").value) || 96;
+
+    var height =
+        Number(get("height").value) || 36;
+
+    var post =
+        Number(get("post").value) || 1.5;
+
+    var rail =
+        Number(get("rail").value) || 1.5;
+
+    var picket =
+        Number(get("picket").value) || .5;
+
+    var spacing =
+        Number(get("spacing").value) || 4;
+
+    var numberPosts =
+        Math.max(
+            2,
+            Number(get("posts").value) || 2
+        );
+
+
+    var svg = get("drawing");
+
+    svg.innerHTML = "";
+
+
+    get("drawingTitle").textContent =
+        get("project").value ||
+        "Shop Drawing";
+
+
+    var scale =
+        Math.min(
+            700 / width,
+            260 / height
+        );
+
+
+    var drawingWidth =
+        width * scale;
+
+    var drawingHeight =
+        height * scale;
+
+
+    var startX =
+        (900 - drawingWidth) / 2;
+
+    var startY = 70;
+
+
+    var postPixels =
+        Math.max(
+            post * scale,
+            5
+        );
+
+
+    var railPixels =
+        Math.max(
+            rail * scale,
+            5
+        );
+
+
+    var picketPixels =
+        Math.max(
+            picket * scale,
+            2
+        );
+
+
+    /* TOP RAIL */
+
+    rectangle(
+        svg,
+        startX,
+        startY,
+        drawingWidth,
+        railPixels,
+        "#dddddd"
+    );
+
+
+    /* BOTTOM RAIL */
+
+    rectangle(
+        svg,
+        startX,
+        startY +
+        drawingHeight -
+        railPixels,
+        drawingWidth,
+        railPixels,
+        "#dddddd"
+    );
+
+
+    /* POST LOCATIONS */
+
+    var positions = [];
+
+    for (
+        var i = 0;
+        i < numberPosts;
+        i++
+    ) {
+
+        positions.push(
+            width *
+            i /
+            (numberPosts - 1)
+        );
+    }
+
+
+    /* DRAW POSTS */
+
+    for (
+        var p = 0;
+        p < positions.length;
+        p++
+    ) {
+
+        var postX =
+            startX +
+            positions[p] *
+            scale;
+
+        rectangle(
+            svg,
+            postX -
+            postPixels / 2,
+            startY,
+            postPixels,
+            drawingHeight,
+            "#cccccc"
+        );
+    }
+
+
+    /* DRAW PICKETS */
+
+    var totalPickets = 0;
+
+
+    for (
+        var section = 0;
+        section <
+        positions.length - 1;
+        section++
+    ) {
+
+        var left =
+            startX +
+            positions[section] *
+            scale +
+            postPixels / 2;
+
+
+        var right =
+            startX +
+            positions[section + 1] *
+            scale -
+            postPixels / 2;
+
+
+        var clearWidth =
+            (right - left) /
+            scale;
+
+
+        var count =
+            Math.max(
+                0,
+                Math.floor(
+                    clearWidth /
+                    spacing
+                ) - 1
+            );
+
+
+        var actualSpacing =
+            clearWidth /
+            (count + 1);
+
+
+        for (
+            var pick = 1;
+            pick <= count;
+            pick++
+        ) {
+
+            var center =
+                left +
+                actualSpacing *
+                pick *
+                scale;
+
+
+            rectangle(
+                svg,
+                center -
+                picketPixels / 2,
+                startY +
+                railPixels,
+                picketPixels,
+                drawingHeight -
+                (railPixels * 2),
+                "#fafafa"
+            );
+
+
+            totalPickets++;
+        }
+    }
+
+
+    /* OVERALL DIMENSION */
+
+    var dimensionY =
+        startY +
+        drawingHeight +
+        35;
+
+
+    line(
+        svg,
+        startX,
+        dimensionY,
+        startX +
+        drawingWidth,
+        dimensionY
+    );
+
+
+    line(
+        svg,
+        startX,
+        dimensionY - 6,
+        startX,
+        dimensionY + 6
+    );
+
+
+    line(
+        svg,
+        startX +
+        drawingWidth,
+        dimensionY - 6,
+        startX +
+        drawingWidth,
+        dimensionY + 6
+    );
+
+
+    text(
+        svg,
+        450,
+        dimensionY - 8,
+        width + '" OVERALL'
+    );
+
+
+    text(
+        svg,
+        450,
+        35,
+        "FRONT ELEVATION — NTS"
+    );
+
+
+    /* CUT LIST */
+
+    var picketLength =
+        height -
+        (rail * 2);
+
+
+    get("cutList").innerHTML =
+
+        "<tr>" +
+        "<td>Posts — " +
+        post +
+        '" sq. tube</td>' +
+        "<td>" +
+        numberPosts +
+        "</td>" +
+        "<td>" +
+        height +
+        '"</td>' +
+        "</tr>" +
+
+        "<tr>" +
+        "<td>Top / Bottom Rails — " +
+        rail +
+        '" sq. tube</td>' +
+        "<td>2</td>" +
+        "<td>" +
+        width +
+        '" overall</td>' +
+        "</tr>" +
+
+        "<tr>" +
+        "<td>Pickets — " +
+        picket +
+        '"</td>' +
+        "<td>" +
+        totalPickets +
+        "</td>" +
+        "<td>" +
+        picketLength.toFixed(2) +
+        '"</td>' +
+        "</tr>";
+
+}
+
+
+generateDrawing();
+
+</script>
+
+</body>
+</html>
