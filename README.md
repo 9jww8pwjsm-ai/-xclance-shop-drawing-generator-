@@ -1,0 +1,1 @@
+# -xclance-shop-drawing-generator-
